@@ -23,6 +23,12 @@ spring:
         dataSource.prepStmtCacheSize: 250
         dataSource.prepStmtCacheSqlLimit: 2048
         dataSource.useServerPrepStmts: true
+  data:
+    redis:
+      host: 192.168.254.128
+      port: 6379
+      password: 123456
+      database: 0
 
 mybatis-plus:
   configuration:
