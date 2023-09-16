@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/user")
@@ -24,6 +26,8 @@ import java.util.Map;
 public class UserController {
     @Autowired
     private UserService userService;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @PostMapping("/sendMsg")
     public R<String> sendMsg(@RequestBody User user, HttpSession session) {
@@ -37,9 +41,10 @@ public class UserController {
             phone="13880812725";
             code="1111";
 
-            //保存验证码到session
-            log.info(code);
-            session.setAttribute(phone, code);
+            //session.setAttribute(phone, code);
+            //将生成的验证码缓存到Redis中，并且设置有效期为5分钟
+            redisTemplate.opsForValue().set(phone, code, 5, TimeUnit.MINUTES);
+
             return R.success("手机验证码发送成功");
         }
         return R.error("手机验证码发送失败");
@@ -51,8 +56,11 @@ public class UserController {
         //获取手机号
         String phone = user.get("phone").toString();
         String code = user.get("code").toString();
-        log.info(phone + "  " + code);
-        if(session.getAttribute(phone) != null && session.getAttribute(phone).equals(code)) {
+
+        //从Redis中获取缓存验证码
+        Object codeInRedis = redisTemplate.opsForValue().get(phone);
+
+        if(codeInRedis != null && codeInRedis.equals(code)) {
             //判断是否为新用户，如果是，自动完成注册
             LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(User::getPhone, phone);
@@ -63,6 +71,10 @@ public class UserController {
                 userService.save(one);
             }
             session.setAttribute("user", one.getId());
+
+            //如果用户登录成功则删除验证码
+            redisTemplate.delete(phone);
+
             return R.success(one);
         }
         return R.error("登录失败,验证码有误");

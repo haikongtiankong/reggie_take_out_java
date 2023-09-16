@@ -29,7 +29,7 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
         this.save(dishDto);
         Long dishId = dishDto.getId();
         //保存菜品口味数据
-        List<DishFlavour> flavours = dishDto.getFlavours();
+        List<DishFlavour> flavours = dishDto.getFlavors();
         flavours = flavours.stream().map((item) -> {
            item.setDishId(dishId);
            return item;
@@ -46,8 +46,8 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
         LambdaQueryWrapper<DishFlavour> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(DishFlavour::getDishId, dish.getId());
         List<DishFlavour> flavours = dishFlavourService.list(queryWrapper);
-        dishDto.setFlavours(flavours);
-
+        dishDto.setFlavors(flavours);
+        for (DishFlavour f: flavours) System.out.println(f);
         return dishDto;
     }
 
@@ -59,7 +59,7 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
         queryWrapper.eq(DishFlavour::getDishId, dishDto.getId());
         dishFlavourService.remove(queryWrapper);
 
-        List<DishFlavour> flavours = dishDto.getFlavours();
+        List<DishFlavour> flavours = dishDto.getFlavors();
         flavours = flavours.stream().map((item) -> {
            item.setDishId(dishDto.getId());
            return item;
